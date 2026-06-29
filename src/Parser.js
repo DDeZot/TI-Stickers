@@ -1,30 +1,24 @@
-// Parser.js
+// Parser.js - обновленная версия с использованием Config
 import * as XLSX from 'xlsx';
 import Equipment from './Equipment';
+import { configManager } from './Config';
 
 // ============================================================
-// КОНСТАНТЫ
+// ЗАГРУЗКА КОНФИГУРАЦИИ
 // ============================================================
 
-const MONTH_MAP = {
-  январь: 0,
-  февраль: 1,
-  март: 2,
-  апрель: 3,
-  май: 4,
-  июнь: 5,
-  июль: 6,
-  август: 7,
-  сентябрь: 8,
-  октябрь: 9,
-  ноябрь: 10,
-  декабрь: 11,
-};
+const config = configManager.loadConfig();
 
-const MONTH_NAMES = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-];
+// ============================================================
+// КОНСТАНТЫ ИЗ КОНФИГА
+// ============================================================
+
+const MONTH_NAMES = config.output.monthNames;
+
+const MONTH_MAP = {};
+MONTH_NAMES.forEach((name, index) => {
+  MONTH_MAP[name.toLowerCase()] = index;
+});
 
 const REQUIRED_HEADERS = [
   'Наименование оборудования',
@@ -34,32 +28,14 @@ const REQUIRED_HEADERS = [
   'Год сейчас',
 ];
 
-const HEADER_VARIATIONS = {
-  'Наименование оборудования': ['наименование оборудования', 'наименование', 'оборудование', 'название', 'наим', 'оборуд'],
-  'Инвентарный номер': ['инвентарный номер', 'инвентарный №', 'инв №', 'инвентарный', 'инв. номер', 'инвентарный', 'инв'],
-  'Периодичность ТО': ['периодичность то', 'периодичность', 'то', 'период', 'периодичность то', 'периодичность'],
-  'График ТО': ['график то', 'график', 'то график', 'план то', 'график то'],
-  'Год сейчас': ['год сейчас', 'год', 'текущий год', 'год проведения', 'год'],
-  'Год следующий': ['год следующий', 'следующий год', 'год'],
-  'Месяц следующее ТО': ['месяц следующее то', 'следующее то', 'месяц то', 'следующий месяц', 'месяц'],
-};
-
-const IGNORED_SHEETS = ['Первые 24', 'BUG', 'Первые 48', 'Первые 96'];
-
-const PERIOD_UNITS = {
-  'мес': 'month',
-  'месяц': 'month',
-  'месяца': 'month',
-  'месяцев': 'month',
-  'м': 'month',
-  'год': 'year',
-  'года': 'year',
-  'лет': 'year',
-  'г': 'year',
-};
-
-const HEADER_SEARCH_LIMIT = 20;
-const MATCH_THRESHOLD = 40;
+const HEADER_VARIATIONS = config.headerVariations;
+const IGNORED_SHEETS = config.ignoredSheets;
+const PERIOD_UNITS = config.periodUnits;
+const HEADER_SEARCH_LIMIT = config.validation.headerSearchLimit;
+const MATCH_THRESHOLD = config.validation.matchThreshold;
+const SHOW_WARNINGS = config.errorHandling.showWarnings;
+const SHOW_ERRORS = config.errorHandling.showErrors;
+const MAX_WARNINGS = config.errorHandling.maxWarnings;
 
 // ============================================================
 // ОСНОВНАЯ ФУНКЦИЯ
@@ -120,12 +96,16 @@ export function parseExcelFile(file) {
           const result = processSheet(rows, sheetName);
           sheetsProcessed++;
 
-          if (result.errors.length > 0) {
+          if (SHOW_ERRORS && result.errors.length > 0) {
             allErrors.push(...result.errors);
           }
 
-          if (result.warnings.length > 0) {
-            allWarnings.push(...result.warnings);
+          if (SHOW_WARNINGS && result.warnings.length > 0) {
+            const limitedWarnings = result.warnings.slice(0, MAX_WARNINGS);
+            allWarnings.push(...limitedWarnings);
+            if (result.warnings.length > MAX_WARNINGS) {
+              allWarnings.push(`... и ещё ${result.warnings.length - MAX_WARNINGS} предупреждений`);
+            }
           }
 
           if (result.equipments.length > 0) {
@@ -276,7 +256,7 @@ function extractEquipmentData(row, headerIndices) {
   if (nextMonthStr && nextYearStr) {
     const nextDate = parseDate(nextMonthStr, nextYearStr);
     maintenanceNext = nextDate ? formatDate(nextDate) : '';
-  } else if (date && maintenancePeriod) {
+  } else if (date && maintenancePeriod && config.validation.autoCalculateNextTO) {
     const nextDate = addPeriod(date, maintenancePeriod);
     maintenanceNext = nextDate ? formatDate(nextDate) : '';
   }
@@ -307,11 +287,11 @@ function validateRow(row, headerIndices, rowIndex, sheetName) {
   const nextMonthStr = getCellValue(row, headerIndices['Месяц следующее ТО']);
   const nextYearStr = getCellValue(row, headerIndices['Год следующий']);
 
-  if (!name) {
+  if (config.validation.requireName && !name) {
     allErrors.push(`Лист "${sheetName}", строка ${rowIndex + 1}: Отсутствует наименование оборудования`);
   }
 
-  if (!inventoryNumber) {
+  if (config.validation.requireInventory && !inventoryNumber) {
     allErrors.push(`Лист "${sheetName}", строка ${rowIndex + 1}: Отсутствует инвентарный номер`);
   }
 
@@ -340,11 +320,11 @@ function validateRow(row, headerIndices, rowIndex, sheetName) {
 function validateTODate(monthStr, yearStr, rowIndex, sheetName) {
   const errors = [];
 
-  if (!monthStr) {
+  if (config.validation.requireTOMonth && !monthStr) {
     errors.push(`Лист "${sheetName}", строка ${rowIndex + 1}: Отсутствует месяц проведения ТО`);
   }
 
-  if (!yearStr) {
+  if (config.validation.requireTOYear && !yearStr) {
     errors.push(`Лист "${sheetName}", строка ${rowIndex + 1}: Отсутствует год проведения ТО`);
   }
 
@@ -364,16 +344,18 @@ function validatePeriod(maintenancePeriod, rowIndex, sheetName) {
   const warnings = [];
   const errors = [];
 
-  if (!maintenancePeriod) {
+  if (config.validation.requirePeriod && !maintenancePeriod) {
     errors.push(`Лист "${sheetName}", строка ${rowIndex + 1}: Отсутствует периодичность ТО`);
     return { warnings, errors };
   }
 
-  const period = parsePeriod(maintenancePeriod);
-  if (!period) {
-    warnings.push(
-      `Лист "${sheetName}", строка ${rowIndex + 1}: Некорректный формат периодичности ТО ("${maintenancePeriod}", ожидается например "12 мес" или "1 год")`
-    );
+  if (maintenancePeriod) {
+    const period = parsePeriod(maintenancePeriod);
+    if (!period) {
+      warnings.push(
+        `Лист "${sheetName}", строка ${rowIndex + 1}: Некорректный формат периодичности ТО ("${maintenancePeriod}", ожидается например "12 мес" или "1 год")`
+      );
+    }
   }
 
   return { warnings, errors };
@@ -543,7 +525,8 @@ function parseDate(monthStr, yearStr) {
 
 function formatDate(date) {
   if (!date) return '';
-  return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()} г.`;
+  const suffix = config.output.dateFormat || 'г.';
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()} ${suffix}`;
 }
 
 function parsePeriod(periodStr) {
@@ -645,7 +628,7 @@ function isEmptyRow(row) {
 }
 
 function isIgnoredSheet(sheetName) {
-  return false;
+  return IGNORED_SHEETS.some((name) => sheetName.includes(name) || sheetName === name);
 }
 
 function getCellValue(row, index) {
