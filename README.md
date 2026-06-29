@@ -1,70 +1,106 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# TI-Stickers — Конвертер Excel в PDF для маркировки оборудования
 
-## Available Scripts
+Приложение для быстрого преобразования данных из Excel-файлов в готовые PDF-документы с наклейками для оборудования. Инструмент разработан для медицинских учреждений и технических служб, которым необходимо вести учёт и маркировку основных средств.
 
-In the project directory, you can run:
+## ✨ Основные возможности
+
+* **Чтение Excel-файлов** — поддерживает форматы `.xlsx` и `.xls`, обрабатывает все листы книги.
+* **Умный поиск колонок** — использует нечеткое сравнение для автоматического обнаружения заголовков.
+* **Гибкая валидация** — проверяет наличие обязательных полей и корректность дат.
+* **Подробные отчёты** — показывает статистику обработки, список предупреждений и критические ошибки.
+* **Настройка парсера** — позволяет изменять правила валидации и фильтрации данных без перезапуска.
+* **Генерация PDF** — создаёт готовые листы с наклейками формата 3×7 для печати.
+* **Настройка PDF** — позволяет менять количество колонок, отображаемые поля и тему таблицы.
+
+## 🚀 Быстрый старт
+
+### Установка и запуск
+
+1. Убедитесь, что у вас установлен Node.js (версия 14.0.0 или выше).
+2. Клонируйте репозиторий и установите зависимости:
+   ```bash
+   git clone <url-репозитория>
+   cd ti-stickers
+   npm install
+   ```
+3. Запустите приложение в режиме разработки:
+   ```bash
+   npm start
+   ```
+4. Откройте браузер и перейдите по адресу [http://localhost:3000](http://localhost:3000).
+
+## 🧭 Как пользоваться приложением
+
+### Шаг 1. Загрузите Excel-файл
+Нажмите кнопку «Выберите Excel-файл» и укажите путь к вашему документу. Поддерживаются файлы с расширениями `.xlsx` и `.xls`.
+
+### Шаг 2. Настройте параметры (опционально)
+По умолчанию приложение использует стандартные настройки, но вы можете их изменить:
+* Нажмите кнопку ⚙️ **Настройки парсера**.
+* В открывшемся окне вы можете:
+  * **Указать игнорируемые листы** — например, служебные страницы с формулами.
+  * **Включить/выключить обязательность полей** (название, инвентарный номер и т.д.).
+  * **Настроить автоматический расчёт следующего ТО**.
+  * **Выбрать отображаемые поля в PDF** (можно скрыть, например, инженера или периодичность).
+  * **Изменить внешний вид PDF** (количество колонок, тему таблицы).
+
+### Шаг 3. Конвертируйте файл
+Нажмите кнопку **«Конвертировать»**. Приложение проанализирует все листы и отобразит:
+* **Статистику** — сколько листов обработано и записей загружено.
+* **Предупреждения** — не критические проблемы (например, отсутствие данных о следующем ТО).
+* **Ошибки** — если какие-то записи невозможно обработать, они будут перечислены.
+
+### Шаг 4. Скачайте PDF
+Если данные успешно загружены, кнопка **«Скачать PDF»** станет активной. Нажмите её, чтобы сохранить готовый файл с наклейками.
+
+## 📂 Структура проекта
+
+```
+ti-stickers/
+├── public/                # Статические файлы
+├── src/                   # Исходный код
+│   ├── App.js             # Основной компонент приложения
+│   ├── ConfigManager.js   # Управление настройками (localStorage)
+│   ├── ConfigModal.jsx    # Модальное окно настроек
+│   ├── defaultConfig.js   # Настройки по умолчанию
+│   ├── Equipment.js       # Модель данных оборудования
+│   ├── Parser.js          # Парсер Excel-файлов
+│   ├── PdfConverter.js    # Генератор PDF-документов
+│   ├── index.js           # Точка входа в приложение
+│   └── ...                # Вспомогательные и стилевые файлы
+├── examples/              # Примеры Excel-файлов для тестирования
+├── package.json           # Зависимости проекта
+└── README.md              
+```
+
+## ⚙️ Доступные скрипты
 
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Запускает приложение в режиме разработки. Откройте [http://localhost:3000](http://localhost:3000), чтобы увидеть результат. Страница автоматически перезагрузится при изменениях в коде.
 
 ### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Запускает интерактивный режим тестирования. По умолчанию выполняются тесты, связанные с изменёнными файлами.
 
 ### `npm run build`
+Собирает оптимизированную production-версию приложения в папку `build`. Сборка минифицирована и содержит хеши в именах файлов для кеширования.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 📄 Требования к Excel-файлам
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Для корректной обработки файл должен содержать следующие колонки (порядок не важен):
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| Ожидаемый заголовок | Что должно содержать |
+|---------------------|----------------------|
+| `Наименование оборудования` | Название устройства |
+| `Инвентарный номер` | Уникальный инвентарный номер |
+| `Периодичность ТО` | Период между техническими обслуживаниями (например, `12 мес` или `1 год`) |
+| `График ТО` | Месяц последнего ТО (например, `Январь`) |
+| `Год сейчас` | Год последнего ТО (например, `2026`) |
 
-### `npm run eject`
+**Дополнительные (но не обязательные) колонки:**
+* `Год следующий` — год следующего ТО.
+* `Месяц следующее ТО` — месяц следующего ТО.
+* `Инженер` — ФИО ответственного инженера.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Если колонки «Год следующий» и «Месяц следующее ТО» не указаны, система автоматически рассчитает дату следующего ТО на основе периодичности.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
